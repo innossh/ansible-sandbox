@@ -1,0 +1,27 @@
+- hosts: localhost
+  gather_facts: False
+
+  vars:
+    example_hash:
+      foo: foo
+      bar: bar
+    example_list:
+      - rejected
+      - one
+      - two
+
+  tasks:
+    - block:
+      - debug:
+          msg: "example_hash['foo'] is {{ example_hash['foo'] }}"
+
+      tags:
+        - example1
+
+    - block:
+      - debug:
+          msg: "filtered example_list is including {{ item }}"
+        with_items: "{{ example_list | reject('search', 'rejected') | list }}"
+
+      tags:
+        - example2
