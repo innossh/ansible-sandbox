@@ -2,6 +2,8 @@
   gather_facts: False
 
   vars:
+    foo: foo
+    baz: baz
     example_hash:
       foo: foo
       bar: bar
@@ -9,19 +11,57 @@
       - rejected
       - one
       - two
+    example_hash_list:
+      - key: key_a
+        value: aaa
+      - key: key_b
+        value: bbb
+      - key: key_c
+        value: ccc
+  vars_prompt:
+    - name: env_baz
+      prompt: Please enter env_baz value
+      default: "{{ lookup('env', 'BAZ') }}"
+      private: no
+    - name: baz_prompt
+      prompt: Please enter baz_prompt value
+      default: "default_baz"
+      private: no
 
   tasks:
     - block:
       - debug:
           msg: "example_hash['foo'] is {{ example_hash['foo'] }}"
+      - debug:
+          msg: "example_hash[foo] is {{ example_hash[foo] }}"
 
       tags:
         - example1
 
     - block:
       - debug:
-          msg: "filtered example_list is including {{ item }}"
-        with_items: "{{ example_list | reject('search', 'rejected') | list }}"
+          msg: "env_baz is {{ env_baz }}"
+      - debug:
+          msg: "baz is {{ baz }}, baz_prompt is {{ baz_prompt }}"
 
       tags:
         - example2
+
+    - block:
+      - debug:
+          msg: "filtered example_list is including {{ item }}"
+        with_items: "{{ example_list | reject('search', 'rejected') }}"
+
+      tags:
+        - example3
+
+    - block:
+      - debug:
+          msg: "example_hash_list is including key_c hash"
+        when: example_hash_list | selectattr("key", "equalto", "key_c") | list | length > 0
+      - debug:
+          msg: "example_hash_list is NOT including key_d hash"
+        when: example_hash_list | selectattr("key", "equalto", "key_d") | list | length == 0
+
+      tags:
+        - example4

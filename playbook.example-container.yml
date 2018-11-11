@@ -1,0 +1,46 @@
+- hosts: containers
+  connection: docker
+  gather_facts: False
+
+  vars:
+    log_dir: /var/log/foo
+
+  tasks:
+    - name: find logs
+      shell: find {{ log_dir }} -printf '{{ print_format }}'
+      vars:
+        print_format: '{ "unix_time": %T@, "time": "%Tc", "path": "%p", "host": "{{ inventory_hostname }}" }\n'
+      register: result_find_logs
+      changed_when: False
+
+    - block:
+      - name: set facts
+        set_fact:
+          latest_log_jsons_per_host: "{{ result_find_logs.stdout_lines }}"
+
+      - block:
+        - name: gather latest_log_jsons facts
+          set_fact:
+            latest_log_jsons: "{{ latest_log_jsons | default([]) + hostvars[item].latest_log_jsons_per_host }}"
+          with_items: "{{ play_hosts }}"
+
+        - name: parse from json
+          set_fact:
+            latest_logs: "{{ latest_logs | default([]) + [item | from_json] }}"
+          with_items: "{{ latest_log_jsons }}"
+
+        - name: get the latest log
+          set_fact:
+            latest_log: "{{ latest_logs | sort(attribute='unix_time', reverse = True) | first }}"
+          when: latest_logs is defined
+
+        - name: output the latest log
+          debug:
+            msg: "{{ latest_log | default('No log') }}"
+
+        delegate_to: localhost
+        run_once: True
+
+      when: result_find_logs is success
+      tags:
+        - example1

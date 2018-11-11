@@ -1,0 +1,12 @@
+version: '3'
+services:
+  echo1:
+    image: python:3.7.1-slim-stretch
+    command: python -m http.server
+    ports:
+      - 8000
+  echo2:
+    image: python:3.7.1-slim-stretch
+    command: python -m http.server
+    ports:
+      - 8000
